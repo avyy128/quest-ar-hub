@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meta Quest 3 AR HUD</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%);
+            font-family: 'Orbitron', 'Rajdhani', monospace;
+        }
+        
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #control-panel {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px 40px;
+            border-radius: 10px;
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            z-index: 1000;
+        }
+
+        h1 {
+            margin: 0 0 20px 0;
+            color: #00ffff;
+            font-size: 28px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background: linear-gradient(135deg, #00ffff, #00aaff);
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            width: 100%;
+            transition: all 0.3s;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+            font-family: 'Orbitron', monospace;
+        }
+
+        button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.8);
+        }
+
+        button:disabled {
+            background: #444;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        #stats-display {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        .stat-panel {
+            background: rgba(0, 20, 40, 0.85);
+            padding: 15px 25px;
+            border-radius: 5px;
+            border: 2px solid #00ffff;
+            color: #00ffff;
+        }
+
+        .stat-panel.ammo {
+            background: rgba(40, 20, 0, 0.85);
+            border-color: #ff8800;
+            color: #ff8800;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .health-bar {
+            width: 200px;
+            height: 20px;
+            background: rgba(255, 0, 0, 0.3);
+            position: relative;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .health-bar-fill {
+            height: 100%;
+            background: #00ff00;
+            transition: width 0.3s, background 0.3s;
+        }
+
+        .ammo-count {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 20px;
+            border-radius: 5px;
+            border: 1px solid #666;
+            color: #aaa;
+            font-size: 14px;
+            max-width: 300px;
+            z-index: 1000;
+        }
+
+        .instructions-title {
+            margin-bottom: 10px;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .instruction-item {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Control Panel -->
+    <div id="control-panel">
+        <h1>Meta Quest 3 AR HUD</h1>
+        <button id="ar-button">Start AR Experience</button>
+        <div id="error-message" class="error-message" style="display: none;"></div>
+    </div>
+
+    <!-- Stats Display (2D fallback) -->
+    <div id="stats-display">
+        <div class="stat-panel">
+            <div class="stat-label">HEALTH</div>
+            <div class="health-bar">
+                <div id="health-bar-fill" class="health-bar-fill" style="width: 100%;"></div>
+            </div>
+        </div>
+        <div class="stat-panel ammo">
+            <div class="stat-label">AMMO</div>
+            <div class="ammo-count" id="ammo-count">30</div>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div id="instructions">
+        <div class="instructions-title">Instructions:</div>
+        <div class="instruction-item">• HUD is fixed to your view</div>
+        <div class="instruction-item">• Move your head to look around</div>
+        <div class="instruction-item">• HUD elements stay in position</div>
+        <div class="instruction-item">• Works in Meta Quest Browser</div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { VRButton } from 'three/addons/webxr/VRButton.js';
+
+        // Stats state
+        let stats = {
+            health: 100,
+            ammo: 30,
+            notifications: ['> SYSTEM ONLINE', '> AR HUD ACTIVE', '> READY']
+        };
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+        const renderer = new THREE.WebGLRenderer({ 
+            alpha: true,
+            antialias: true 
+        });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.xr.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // Check WebXR support
+        const arButton = document.getElementById('ar-button');
+        const errorMessage = document.getElementById('error-message');
+
+        if ('xr' in navigator) {
+            navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+                if (!supported) {
+                    arButton.disabled = true;
+                    arButton.textContent = 'AR Not Supported';
+                    errorMessage.textContent = 'WebXR not supported. Please use Meta Quest 3 browser.';
+                    errorMessage.style.display = 'block';
+                }
+            });
+        } else {
+            arButton.disabled = true;
+            arButton.textContent = 'AR Not Supported';
+            errorMessage.textContent = 'WebXR not supported. Please use Meta Quest 3 browser.';
+            errorMessage.style.display = 'block';
+        }
+
+        // Create HUD group (fixed to camera)
+        const hudGroup = new THREE.Group();
+        hudGroup.position.z = -2; // 2 meters in front
+        hudGroup.position.y = 0.2; // Slight upward offset
+        camera.add(hudGroup);
+        scene.add(camera);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        // Create Health Panel
+        function createHealthPanel(parent) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = 'rgba(0, 20, 40, 0.85)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Border
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+            
+            // Health text
+            ctx.fillStyle = '#00ffff';
+            ctx.font = 'bold 48px "Orbitron", monospace';
+            ctx.fillText('HEALTH', 20, 50);
+            
+            // Health bar background
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+            ctx.fillRect(20, 70, 472, 40);
+            
+            // Health bar
+            const healthWidth = (stats.health / 100) * 472;
+            ctx.fillStyle = stats.health > 50 ? '#00ff00' : stats.health > 25 ? '#ffaa00' : '#ff0000';
+            ctx.fillRect(20, 70, healthWidth, 40);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.MeshBasicMaterial({ 
+                map: texture, 
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            const geometry = new THREE.PlaneGeometry(1, 0.25);
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(-1.5, 0.8, 0);
+            parent.add(mesh);
+            
+            return { canvas, ctx, mesh };
+        }
+
+        // Create Ammo Panel
+        function createAmmoPanel(parent) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = 'rgba(40, 20, 0, 0.85)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Border
+            ctx.strokeStyle = '#ff8800';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+            
+            // Ammo text
+            ctx.fillStyle = '#ff8800';
+            ctx.font = 'bold 48px "Orbitron", monospace';
+            ctx.fillText('AMMO', 20, 50);
+            
+            // Ammo count
+            ctx.font = 'bold 64px "Orbitron", monospace';
+            ctx.fillText(stats.ammo.toString().padStart(2, '0'), 360, 90);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.MeshBasicMaterial({ 
+                map: texture, 
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            const geometry = new THREE.PlaneGeometry(1, 0.25);
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(1.5, 0.8, 0);
+            parent.add(mesh);
+            
+            return { canvas, ctx, mesh };
+        }
+
+        // Create Minimap
+        function createMinimap(parent) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = 'rgba(0, 30, 0, 0.85)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Border
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
+            
+            // Grid
+            ctx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 256; i += 32) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, 256);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(256, i);
+                ctx.stroke();
+            }
+            
+            // Player position (center)
+            ctx.fillStyle = '#00ff00';
+            ctx.beginPath();
+            ctx.arc(128, 128, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Direction indicator
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(128, 128);
+            ctx.lineTo(128, 100);
+            ctx.stroke();
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.MeshBasicMaterial({ 
+                map: texture, 
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            const geometry = new THREE.PlaneGeometry(0.5, 0.5);
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(-1.5, 0.2, 0);
+            parent.add(mesh);
+            
+            return { canvas, ctx, mesh };
+        }
+
+        // Create Notification Area
+        function createNotificationArea(parent) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = 'rgba(20, 20, 20, 0.7)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Notifications
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '28px "Orbitron", monospace';
+            stats.notifications.forEach((notification, index) => {
+                ctx.fillText(notification, 20, 40 + (index * 40));
+            });
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.MeshBasicMaterial({ 
+                map: texture, 
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            const geometry = new THREE.PlaneGeometry(1, 0.5);
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(1.2, 0.2, 0);
+            parent.add(mesh);
+            
+            return { canvas, ctx, mesh };
+        }
+
+        // Create Crosshair
+        function createCrosshair(parent) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+            
+            // Cross lines
+            ctx.beginPath();
+            ctx.moveTo(64, 44);
+            ctx.lineTo(64, 54);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(64, 74);
+            ctx.lineTo(64, 84);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(44, 64);
+            ctx.lineTo(54, 64);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(74, 64);
+            ctx.lineTo(84, 64);
+            ctx.stroke();
+            
+            // Center dot
+            ctx.fillStyle = '#00ffff';
+            ctx.beginPath();
+            ctx.arc(64, 64, 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.MeshBasicMaterial({ 
+                map: texture, 
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            const geometry = new THREE.PlaneGeometry(0.2, 0.2);
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(0, 0, 0);
+            parent.add(mesh);
+            
+            return { mesh };
+        }
+
+        // Create all HUD elements
+        const healthPanel = createHealthPanel(hudGroup);
+        const ammoPanel = createAmmoPanel(hudGroup);
+        const minimap = createMinimap(hudGroup);
+        const notificationArea = createNotificationArea(hudGroup);
+        const crosshair = createCrosshair(hudGroup);
+
+        // Update 2D stats display
+        function update2DStats() {
+            const healthBarFill = document.getElementById('health-bar-fill');
+            const ammoCount = document.getElementById('ammo-count');
+            
+            healthBarFill.style.width = `${stats.health}%`;
+            if (stats.health > 50) {
+                healthBarFill.style.background = '#00ff00';
+            } else if (stats.health > 25) {
+                healthBarFill.style.background = '#ffaa00';
+            } else {
+                healthBarFill.style.background = '#ff0000';
+            }
+            
+            ammoCount.textContent = stats.ammo;
+        }
+
+        // Simulate stats changes (demo purposes)
+        setInterval(() => {
+            // Randomly decrease health
+            if (Math.random() < 0.1 && stats.health > 0) {
+                stats.health = Math.max(0, stats.health - 5);
+                update2DStats();
+                
+                // Update health panel texture
+                const ctx = healthPanel.ctx;
+                ctx.fillStyle = 'rgba(0, 20, 40, 0.85)';
+                ctx.fillRect(0, 0, 512, 128);
+                ctx.strokeStyle = '#00ffff';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(4, 4, 504, 120);
+                ctx.fillStyle = '#00ffff';
+                ctx.font = 'bold 48px "Orbitron", monospace';
+                ctx.fillText('HEALTH', 20, 50);
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+                ctx.fillRect(20, 70, 472, 40);
+                const healthWidth = (stats.health / 100) * 472;
+                ctx.fillStyle = stats.health > 50 ? '#00ff00' : stats.health > 25 ? '#ffaa00' : '#ff0000';
+                ctx.fillRect(20, 70, healthWidth, 40);
+                healthPanel.mesh.material.map.needsUpdate = true;
+            }
+            
+            // Randomly decrease ammo
+            if (Math.random() < 0.05 && stats.ammo > 0) {
+                stats.ammo = Math.max(0, stats.ammo - 1);
+                update2DStats();
+                
+                // Update ammo panel texture
+                const ctx = ammoPanel.ctx;
+                ctx.fillStyle = 'rgba(40, 20, 0, 0.85)';
+                ctx.fillRect(0, 0, 512, 128);
+                ctx.strokeStyle = '#ff8800';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(4, 4, 504, 120);
+                ctx.fillStyle = '#ff8800';
+                ctx.font = 'bold 48px "Orbitron", monospace';
+                ctx.fillText('AMMO', 20, 50);
+                ctx.font = 'bold 64px "Orbitron", monospace';
+                ctx.fillText(stats.ammo.toString().padStart(2, '0'), 360, 90);
+                ammoPanel.mesh.material.map.needsUpdate = true;
+            }
+        }, 2000);
+
+        // AR Session handling
+        arButton.addEventListener('click', async () => {
+            try {
+                const session = await navigator.xr.requestSession('immersive-ar', {
+                    requiredFeatures: ['local'],
+                    optionalFeatures: ['dom-overlay', 'hand-tracking'],
+                    domOverlay: { root: document.body }
+                });
+                
+                renderer.xr.setSession(session);
+                arButton.textContent = 'AR Session Active';
+                arButton.disabled = true;
+                document.getElementById('control-panel').style.display = 'none';
+                
+                session.addEventListener('end', () => {
+                    arButton.textContent = 'Start AR Experience';
+                    arButton.disabled = false;
+                    document.getElementById('control-panel').style.display = 'block';
+                });
+            } catch (error) {
+                console.error('Error starting AR session:', error);
+                errorMessage.textContent = `Error: ${error.message}`;
+                errorMessage.style.display = 'block';
+            }
+        });
+
+        // Animation loop
+        let time = 0;
+        renderer.setAnimationLoop(() => {
+            time += 0.01;
+            
+            // Subtle crosshair pulse
+            crosshair.mesh.scale.set(
+                1 + Math.sin(time * 2) * 0.1,
+                1 + Math.sin(time * 2) * 0.1,
+                1
+            );
+            
+            renderer.render(scene, camera);
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>
