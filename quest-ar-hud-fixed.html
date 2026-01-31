@@ -3,9 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meta Quest 3 AR HUD</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>Quest 3 AR Hub - Enhanced</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary-glow: #a78bfa;
+            --secondary-glow: #f59e0b;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --bg-dark: rgba(15, 15, 25, 0.95);
+            --bg-card: rgba(30, 30, 45, 0.85);
+            --text-primary: #e5e5e5;
+            --text-secondary: #9ca3af;
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -13,226 +26,440 @@
         }
         
         body {
-            width: 100vw;
-            height: 100vh;
+            margin: 0;
             overflow: hidden;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%);
-            font-family: 'Orbitron', 'Rajdhani', monospace;
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, #0f0f19 0%, #1a1a2e 50%, #0f0f19 100%);
         }
         
         canvas {
             display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
         }
-
-        #control-panel {
+        
+        /* Top Status Bar */
+        #statusBar {
             position: absolute;
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            padding: 20px 40px;
-            border-radius: 10px;
-            border: 2px solid #00ffff;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
-            z-index: 1000;
-            max-width: 90%;
-        }
-
-        h1 {
-            margin: 0 0 20px 0;
-            color: #00ffff;
-            font-size: 28px;
-            text-align: center;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
-        }
-
-        button {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            background: var(--bg-dark);
             padding: 15px 30px;
-            font-size: 18px;
-            background: linear-gradient(135deg, #00ffff, #00aaff);
-            color: #000;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
+            border-radius: 20px;
+            border: 1px solid rgba(167, 139, 250, 0.3);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                        0 0 20px rgba(167, 139, 250, 0.2);
+            z-index: 1000;
+            font-family: 'JetBrains Mono', monospace;
+            animation: slideDown 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .status-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .status-icon.green {
+            background: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.9); }
+        }
+        
+        .divider {
+            width: 1px;
+            height: 20px;
+            background: linear-gradient(to bottom, transparent, rgba(167, 139, 250, 0.5), transparent);
+        }
+        
+        /* Main Task Display */
+        #taskDisplay {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+                        0 0 40px rgba(167, 139, 250, 0.1);
+            z-index: 999;
+            animation: fadeInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s backwards;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        .task-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .task-icon {
+            width: 12px;
+            height: 12px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--accent-green);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .task-label {
+            font-size: 12px;
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 2px;
-            width: 100%;
-            transition: all 0.3s;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
-            font-family: 'Orbitron', monospace;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
         }
-
-        button:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 0 25px rgba(0, 255, 255, 0.8);
-        }
-
-        button:disabled {
-            background: #444;
-            cursor: not-allowed;
-            box-shadow: none;
-            color: #888;
-        }
-
-        .message {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 14px;
-            text-align: center;
-        }
-
-        .error-message {
-            background: rgba(255, 0, 0, 0.2);
-            border: 1px solid #ff6b6b;
-            color: #ff6b6b;
-        }
-
-        .info-message {
-            background: rgba(0, 255, 255, 0.1);
-            border: 1px solid #00ffff;
-            color: #00ffff;
-        }
-
-        .success-message {
-            background: rgba(0, 255, 0, 0.1);
-            border: 1px solid #00ff00;
-            color: #00ff00;
-        }
-
-        #stats-display {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
+        
+        .task-content {
             display: flex;
-            gap: 20px;
-            z-index: 1000;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
         }
-
-        .stat-panel {
-            background: rgba(0, 20, 40, 0.85);
-            padding: 15px 25px;
-            border-radius: 5px;
-            border: 2px solid #00ffff;
-            color: #00ffff;
+        
+        .task-info h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            line-height: 1.2;
         }
-
-        .stat-panel.ammo {
-            background: rgba(40, 20, 0, 0.85);
-            border-color: #ff8800;
-            color: #ff8800;
+        
+        .task-time {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
         }
-
-        .stat-label {
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
-
-        .health-bar {
-            width: 200px;
-            height: 20px;
-            background: rgba(255, 0, 0, 0.3);
+        
+        /* Circular Timer */
+        .timer-container {
             position: relative;
+            width: 120px;
+            height: 120px;
+        }
+        
+        .timer-circle {
+            transform: rotate(-90deg);
+        }
+        
+        .timer-bg {
+            fill: none;
+            stroke: rgba(167, 139, 250, 0.1);
+            stroke-width: 8;
+        }
+        
+        .timer-progress {
+            fill: none;
+            stroke: url(#gradient);
+            stroke-width: 8;
+            stroke-linecap: round;
+            stroke-dasharray: 314;
+            stroke-dashoffset: 78.5;
+            animation: timerSpin 20s linear infinite;
+        }
+        
+        @keyframes timerSpin {
+            from { stroke-dashoffset: 314; }
+            to { stroke-dashoffset: 0; }
+        }
+        
+        .timer-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(167, 139, 250, 0.1);
             border-radius: 3px;
             overflow: hidden;
+            margin-bottom: 25px;
         }
-
-        .health-bar-fill {
+        
+        .progress-bar {
             height: 100%;
-            background: #00ff00;
-            transition: width 0.3s, background 0.3s;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--primary-glow));
+            border-radius: 3px;
+            width: 70%;
+            animation: progressGlow 2s ease-in-out infinite;
+            box-shadow: 0 0 15px rgba(167, 139, 250, 0.6);
         }
-
-        .ammo-count {
-            font-size: 32px;
-            font-weight: bold;
+        
+        @keyframes progressGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(167, 139, 250, 0.6); }
+            50% { box-shadow: 0 0 25px rgba(167, 139, 250, 0.9); }
         }
-
-        #instructions {
+        
+        /* Next Tasks */
+        .next-section {
+            margin-bottom: 25px;
+        }
+        
+        .next-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            color: var(--text-primary);
+            font-size: 15px;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+        
+        .task-item:hover {
+            opacity: 1;
+        }
+        
+        .task-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(167, 139, 250, 0.5);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .task-checkbox:hover {
+            border-color: var(--primary-glow);
+            box-shadow: 0 0 10px rgba(167, 139, 250, 0.4);
+        }
+        
+        /* Bottom Stats */
+        .stats-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .stat-icon {
+            font-size: 20px;
+        }
+        
+        /* Timeline */
+        .timeline {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+            max-width: 300px;
+        }
+        
+        .timeline-line {
+            flex: 1;
+            height: 2px;
+            background: rgba(167, 139, 250, 0.2);
+            position: relative;
+        }
+        
+        .timeline-dot {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            top: 50%;
+            transform: translateY(-50%);
+            box-shadow: 0 0 10px;
+        }
+        
+        .timeline-dot.active {
+            background: var(--primary-glow);
+            box-shadow: 0 0 15px var(--primary-glow);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .timeline-dot.upcoming {
+            background: var(--secondary-glow);
+            box-shadow: 0 0 10px var(--secondary-glow);
+        }
+        
+        .timeline-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        #info {
             position: absolute;
             bottom: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px 20px;
-            border-radius: 5px;
-            border: 1px solid #666;
-            color: #aaa;
-            font-size: 14px;
-            max-width: 300px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--text-secondary);
+            background: var(--bg-dark);
+            padding: 15px 25px;
+            border-radius: 12px;
+            font-size: 13px;
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            backdrop-filter: blur(20px);
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
             z-index: 1000;
-        }
-
-        .instructions-title {
-            margin-bottom: 10px;
-            color: #fff;
-            font-weight: bold;
-        }
-
-        .instruction-item {
-            margin-bottom: 5px;
-        }
-
-        #debug-log {
-            position: absolute;
-            top: 120px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.9);
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #666;
-            color: #0f0;
-            font-size: 11px;
-            font-family: monospace;
-            max-width: 300px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 1000;
-            display: none;
         }
     </style>
 </head>
 <body>
-    <!-- Control Panel -->
-    <div id="control-panel">
-        <h1>Meta Quest 3 AR HUD</h1>
-        <button id="ar-button">Checking AR Support...</button>
-        <div id="message-container"></div>
+    <!-- Top Status Bar -->
+    <div id="statusBar">
+        <div class="status-item">
+            <div class="status-icon green"></div>
+            <span>1:42 PM</span>
+        </div>
+        <div class="divider"></div>
+        <div class="status-item">
+            <span>Focus: DEEP</span>
+        </div>
+        <div class="divider"></div>
+        <div class="status-item">
+            <span>🔋 78%</span>
+        </div>
+        <div class="divider"></div>
+        <div class="status-item">
+            <span>📶 ||||</span>
+        </div>
     </div>
 
-    <!-- Stats Display (2D fallback) -->
-    <div id="stats-display">
-        <div class="stat-panel">
-            <div class="stat-label">HEALTH</div>
-            <div class="health-bar">
-                <div id="health-bar-fill" class="health-bar-fill" style="width: 100%;"></div>
+    <!-- Main Task Display -->
+    <div id="taskDisplay">
+        <div class="task-header">
+            <div class="task-icon"></div>
+            <div class="task-label">Current Task</div>
+        </div>
+        
+        <div class="task-content">
+            <div class="task-info">
+                <h2>Build ESP32 Door Sensor</h2>
+                <div class="task-time">17 min left</div>
+            </div>
+            
+            <div class="timer-container">
+                <svg class="timer-circle" width="120" height="120">
+                    <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#a78bfa;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <circle class="timer-bg" cx="60" cy="60" r="50"></circle>
+                    <circle class="timer-progress" cx="60" cy="60" r="50"></circle>
+                </svg>
+                <div class="timer-text">20:07</div>
             </div>
         </div>
-        <div class="stat-panel ammo">
-            <div class="stat-label">AMMO</div>
-            <div class="ammo-count" id="ammo-count">30</div>
+        
+        <div class="progress-container">
+            <div class="progress-bar"></div>
+        </div>
+        
+        <div class="next-section">
+            <div class="next-label">Next:</div>
+            <div class="task-item">
+                <div class="task-checkbox"></div>
+                <span>Flash firmware</span>
+            </div>
+            <div class="task-item">
+                <div class="task-checkbox"></div>
+                <span>Test alerts</span>
+            </div>
+        </div>
+        
+        <div class="stats-container">
+            <div class="stat-item">
+                <span class="stat-icon">🔥</span>
+                <span>Streak: 5 days</span>
+            </div>
+            
+            <div class="timeline">
+                <div class="timeline-label">Now</div>
+                <div class="timeline-line">
+                    <div class="timeline-dot active" style="left: 20%;"></div>
+                    <div class="timeline-dot upcoming" style="left: 60%;"></div>
+                    <div class="timeline-dot upcoming" style="left: 90%;"></div>
+                </div>
+                <div class="timeline-label">3PM</div>
+                <div class="timeline-label">6PM</div>
+            </div>
+            
+            <div class="stat-item">
+                <span class="stat-icon">🌿</span>
+                <span>Habits today: 3/4</span>
+            </div>
         </div>
     </div>
-
-    <!-- Instructions -->
-    <div id="instructions">
-        <div class="instructions-title">Instructions:</div>
-        <div class="instruction-item">• HUD is fixed to your view</div>
-        <div class="instruction-item">• Move your head to look around</div>
-        <div class="instruction-item">• HUD elements stay in position</div>
-        <div class="instruction-item">• Works in Meta Quest Browser</div>
+    
+    <div id="info">
+        Put on your Quest 3 and click "Enter AR" to see the hub fixed in space
     </div>
-
-    <!-- Debug Log -->
-    <div id="debug-log"></div>
-
+    
     <script type="importmap">
     {
         "imports": {
@@ -244,388 +471,257 @@
 
     <script type="module">
         import * as THREE from 'three';
-
-        // Debug logging
-        const debugLog = document.getElementById('debug-log');
-        const messageContainer = document.getElementById('message-container');
-        let debugMode = true; // Set to false to hide debug log
-
-        function log(message, type = 'info') {
-            console.log(message);
-            if (debugMode) {
-                debugLog.style.display = 'block';
-                const timestamp = new Date().toLocaleTimeString();
-                debugLog.innerHTML += `[${timestamp}] ${message}<br>`;
-                debugLog.scrollTop = debugLog.scrollHeight;
-            }
-        }
-
-        function showMessage(message, type = 'info') {
-            messageContainer.innerHTML = `<div class="${type}-message message">${message}</div>`;
-        }
-
-        // Stats state
-        let stats = {
-            health: 100,
-            ammo: 30,
-            notifications: ['> SYSTEM ONLINE', '> AR HUD ACTIVE', '> READY']
-        };
-
-        log('Initializing AR HUD...');
+        import { VRButton } from 'three/addons/webxr/VRButton.js';
+        import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
 
         // Scene setup
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
 
-        const renderer = new THREE.WebGLRenderer({ 
-            alpha: true,
-            antialias: true 
-        });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.xr.enabled = true;
         document.body.appendChild(renderer.domElement);
 
-        log('Renderer created');
-
-        // Create HUD group (fixed to camera)
-        const hudGroup = new THREE.Group();
-        hudGroup.position.z = -2; // 2 meters in front
-        hudGroup.position.y = 0.2; // Slight upward offset
-        camera.add(hudGroup);
-        scene.add(camera);
-
-        log('HUD group created');
+        // Add AR button with custom styling
+        const arButton = VRButton.createButton(renderer, {
+            requiredFeatures: ['local-floor'],
+            optionalFeatures: ['hand-tracking', 'layers', 'anchors']
+        });
+        arButton.style.cssText = `
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 40px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #a78bfa, #f59e0b);
+            color: #000;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(167, 139, 250, 0.4);
+            transition: all 0.3s;
+        `;
+        arButton.textContent = 'ENTER AR';
+        document.body.appendChild(arButton);
 
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
 
-        // Create Health Panel
-        function createHealthPanel(parent) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 512;
-            canvas.height = 128;
-            const ctx = canvas.getContext('2d');
-            
-            ctx.fillStyle = 'rgba(0, 20, 40, 0.85)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = '#00ffff';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
-            ctx.fillStyle = '#00ffff';
-            ctx.font = 'bold 48px Arial';
-            ctx.fillText('HEALTH', 20, 50);
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
-            ctx.fillRect(20, 70, 472, 40);
-            const healthWidth = (stats.health / 100) * 472;
-            ctx.fillStyle = stats.health > 50 ? '#00ff00' : stats.health > 25 ? '#ffaa00' : '#ff0000';
-            ctx.fillRect(20, 70, healthWidth, 40);
-            
-            const texture = new THREE.CanvasTexture(canvas);
-            const material = new THREE.MeshBasicMaterial({ 
-                map: texture, 
-                transparent: true,
-                side: THREE.DoubleSide
-            });
-            const geometry = new THREE.PlaneGeometry(1, 0.25);
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(-1.5, 0.8, 0);
-            parent.add(mesh);
-            
-            return { canvas, ctx, mesh };
-        }
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(0, 5, 5);
+        scene.add(directionalLight);
 
-        function createAmmoPanel(parent) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 512;
-            canvas.height = 128;
-            const ctx = canvas.getContext('2d');
-            
-            ctx.fillStyle = 'rgba(40, 20, 0, 0.85)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = '#ff8800';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
-            ctx.fillStyle = '#ff8800';
-            ctx.font = 'bold 48px Arial';
-            ctx.fillText('AMMO', 20, 50);
-            ctx.font = 'bold 64px Arial';
-            ctx.fillText(stats.ammo.toString().padStart(2, '0'), 360, 90);
-            
-            const texture = new THREE.CanvasTexture(canvas);
-            const material = new THREE.MeshBasicMaterial({ 
-                map: texture, 
-                transparent: true,
-                side: THREE.DoubleSide
-            });
-            const geometry = new THREE.PlaneGeometry(1, 0.25);
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(1.5, 0.8, 0);
-            parent.add(mesh);
-            
-            return { canvas, ctx, mesh };
-        }
+        // Create AR Hub Group (fixed in space)
+        const hubGroup = new THREE.Group();
+        hubGroup.position.set(0, 1.5, -2.5); // 2.5 meters in front, 1.5m high
+        scene.add(hubGroup);
 
-        function createMinimap(parent) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256;
-            canvas.height = 256;
-            const ctx = canvas.getContext('2d');
-            
-            ctx.fillStyle = 'rgba(0, 30, 0, 0.85)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = '#00ff00';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
-            ctx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
-            ctx.lineWidth = 1;
-            for (let i = 0; i < 256; i += 32) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i, 256);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(0, i);
-                ctx.lineTo(256, i);
-                ctx.stroke();
-            }
-            ctx.fillStyle = '#00ff00';
-            ctx.beginPath();
-            ctx.arc(128, 128, 8, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#00ff00';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(128, 128);
-            ctx.lineTo(128, 100);
-            ctx.stroke();
-            
-            const texture = new THREE.CanvasTexture(canvas);
-            const material = new THREE.MeshBasicMaterial({ 
-                map: texture, 
-                transparent: true,
-                side: THREE.DoubleSide
-            });
-            const geometry = new THREE.PlaneGeometry(0.5, 0.5);
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(-1.5, 0.2, 0);
-            parent.add(mesh);
-            
-            return { canvas, ctx, mesh };
-        }
+        // Main Panel with gradient
+        const panelGeometry = new THREE.PlaneGeometry(1.8, 1.2);
+        const panelMaterial = new THREE.MeshStandardMaterial({
+            color: 0x1e1e2d,
+            transparent: true,
+            opacity: 0.95,
+            side: THREE.DoubleSide,
+            emissive: 0x2d2d4d,
+            emissiveIntensity: 0.2
+        });
+        const mainPanel = new THREE.Mesh(panelGeometry, panelMaterial);
+        hubGroup.add(mainPanel);
 
-        function createNotificationArea(parent) {
+        // Panel border with glow
+        const borderGeometry = new THREE.EdgesGeometry(panelGeometry);
+        const borderMaterial = new THREE.LineBasicMaterial({ 
+            color: 0xa78bfa, 
+            linewidth: 2,
+            transparent: true,
+            opacity: 0.8
+        });
+        const border = new THREE.LineSegments(borderGeometry, borderMaterial);
+        mainPanel.add(border);
+
+        // Create text panels with canvas textures
+        function createTextPanel(text, width, height, backgroundColor, textColor, fontSize = 40) {
             const canvas = document.createElement('canvas');
             canvas.width = 512;
             canvas.height = 256;
             const ctx = canvas.getContext('2d');
             
-            ctx.fillStyle = 'rgba(20, 20, 20, 0.7)';
+            // Background
+            ctx.fillStyle = backgroundColor;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '28px Arial';
-            stats.notifications.forEach((notification, index) => {
-                ctx.fillText(notification, 20, 40 + (index * 40));
-            });
+            
+            // Text
+            ctx.fillStyle = textColor;
+            ctx.font = `bold ${fontSize}px 'Space Grotesk', sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
             
             const texture = new THREE.CanvasTexture(canvas);
-            const material = new THREE.MeshBasicMaterial({ 
-                map: texture, 
+            const material = new THREE.MeshStandardMaterial({
+                map: texture,
                 transparent: true,
-                side: THREE.DoubleSide
+                emissive: 0xffffff,
+                emissiveIntensity: 0.1
             });
-            const geometry = new THREE.PlaneGeometry(1, 0.5);
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(1.2, 0.2, 0);
-            parent.add(mesh);
-            
-            return { canvas, ctx, mesh };
+            const geometry = new THREE.PlaneGeometry(width, height);
+            return new THREE.Mesh(geometry, material);
         }
 
-        function createCrosshair(parent) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 128;
-            canvas.height = 128;
-            const ctx = canvas.getContext('2d');
-            
-            ctx.strokeStyle = '#00ffff';
-            ctx.lineWidth = 2;
-            
-            ctx.beginPath();
-            ctx.moveTo(64, 44);
-            ctx.lineTo(64, 54);
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.moveTo(64, 74);
-            ctx.lineTo(64, 84);
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.moveTo(44, 64);
-            ctx.lineTo(54, 64);
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.moveTo(74, 64);
-            ctx.lineTo(84, 64);
-            ctx.stroke();
-            
-            ctx.fillStyle = '#00ffff';
-            ctx.beginPath();
-            ctx.arc(64, 64, 2, 0, Math.PI * 2);
-            ctx.fill();
-            
-            const texture = new THREE.CanvasTexture(canvas);
-            const material = new THREE.MeshBasicMaterial({ 
-                map: texture, 
-                transparent: true,
-                side: THREE.DoubleSide
-            });
-            const geometry = new THREE.PlaneGeometry(0.2, 0.2);
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(0, 0, 0);
-            parent.add(mesh);
-            
-            return { mesh };
-        }
+        // Title
+        const title = createTextPanel('AR PRODUCTIVITY HUB', 1.5, 0.25, 
+            'rgba(30, 30, 45, 0)', '#a78bfa', 35);
+        title.position.set(0, 0.45, 0.01);
+        hubGroup.add(title);
 
-        // Create all HUD elements
-        log('Creating HUD elements...');
-        const healthPanel = createHealthPanel(hudGroup);
-        const ammoPanel = createAmmoPanel(hudGroup);
-        const minimap = createMinimap(hudGroup);
-        const notificationArea = createNotificationArea(hudGroup);
-        const crosshair = createCrosshair(hudGroup);
-        log('HUD elements created');
+        // Current task display
+        const taskText = createTextPanel('Build ESP32 Sensor', 1.3, 0.2,
+            'rgba(30, 30, 45, 0)', '#e5e5e5', 32);
+        taskText.position.set(0, 0.15, 0.01);
+        hubGroup.add(taskText);
 
-        // Update 2D stats display
-        function update2DStats() {
-            const healthBarFill = document.getElementById('health-bar-fill');
-            const ammoCount = document.getElementById('ammo-count');
-            
-            healthBarFill.style.width = `${stats.health}%`;
-            if (stats.health > 50) {
-                healthBarFill.style.background = '#00ff00';
-            } else if (stats.health > 25) {
-                healthBarFill.style.background = '#ffaa00';
-            } else {
-                healthBarFill.style.background = '#ff0000';
-            }
-            
-            ammoCount.textContent = stats.ammo;
-        }
+        // Timer display
+        const timerText = createTextPanel('20:07', 0.6, 0.18,
+            'rgba(30, 30, 45, 0)', '#10b981', 45);
+        timerText.position.set(0, -0.1, 0.01);
+        hubGroup.add(timerText);
 
-        // Check WebXR support
-        const arButton = document.getElementById('ar-button');
+        // Menu buttons with gradient colors
+        const buttonData = [
+            { y: -0.35, label: 'Apps', color: '#10b981' },
+            { y: -0.55, label: 'Settings', color: '#f59e0b' },
+            { y: -0.75, label: 'Exit', color: '#ef4444' }
+        ];
 
-        async function checkARSupport() {
-            log('Checking AR support...');
-            
-            if (!('xr' in navigator)) {
-                log('WebXR not available', 'error');
-                arButton.disabled = true;
-                arButton.textContent = 'WebXR Not Available';
-                showMessage('WebXR API not found. Please use Meta Quest 3 browser.', 'error');
-                return false;
-            }
-
-            log('WebXR API found');
-
-            try {
-                const supported = await navigator.xr.isSessionSupported('immersive-ar');
-                log(`AR supported: ${supported}`);
-                
-                if (supported) {
-                    arButton.disabled = false;
-                    arButton.textContent = 'Start AR Experience';
-                    showMessage('AR is supported! Click the button to begin.', 'success');
-                    return true;
-                } else {
-                    arButton.disabled = true;
-                    arButton.textContent = 'AR Not Supported';
-                    showMessage('This device does not support AR. Use Meta Quest 3 browser.', 'error');
-                    return false;
-                }
-            } catch (error) {
-                log(`Error checking AR support: ${error.message}`, 'error');
-                arButton.disabled = true;
-                arButton.textContent = 'AR Check Failed';
-                showMessage(`Error: ${error.message}`, 'error');
-                return false;
-            }
-        }
-
-        // AR Session handling
-        arButton.addEventListener('click', async () => {
-            log('AR button clicked');
-            arButton.disabled = true;
-            arButton.textContent = 'Starting AR...';
-            showMessage('Requesting AR session...', 'info');
-
-            try {
-                log('Requesting AR session...');
-                
-                const session = await navigator.xr.requestSession('immersive-ar', {
-                    requiredFeatures: ['local-floor'],
-                    optionalFeatures: ['hand-tracking', 'layers']
-                });
-                
-                log('AR session granted!');
-                showMessage('AR session active!', 'success');
-                
-                await renderer.xr.setSession(session);
-                log('Session set on renderer');
-                
-                arButton.textContent = 'AR Active';
-                
-                // Hide control panel after successful start
-                setTimeout(() => {
-                    document.getElementById('control-panel').style.opacity = '0';
-                    setTimeout(() => {
-                        document.getElementById('control-panel').style.display = 'none';
-                    }, 500);
-                }, 1000);
-                
-                session.addEventListener('end', () => {
-                    log('AR session ended');
-                    arButton.textContent = 'Start AR Experience';
-                    arButton.disabled = false;
-                    document.getElementById('control-panel').style.display = 'block';
-                    document.getElementById('control-panel').style.opacity = '1';
-                    showMessage('AR session ended', 'info');
-                });
-                
-            } catch (error) {
-                log(`AR session error: ${error.message}`, 'error');
-                arButton.disabled = false;
-                arButton.textContent = 'Start AR Experience';
-                showMessage(`Failed to start AR: ${error.message}`, 'error');
-            }
+        const buttons = [];
+        buttonData.forEach((btn) => {
+            const button = createTextPanel(btn.label, 0.8, 0.15,
+                'rgba(30, 30, 45, 0.8)', btn.color, 28);
+            button.position.set(0, btn.y, 0.01);
+            button.userData = { originalColor: btn.color, label: btn.label };
+            buttons.push(button);
+            hubGroup.add(button);
         });
 
-        // Animation loop
-        log('Starting animation loop...');
-        let time = 0;
-        let frameCount = 0;
+        // Floating particles with gradient colors
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 100;
+        const positions = new Float32Array(particlesCount * 3);
+        const colors = new Float32Array(particlesCount * 3);
+
+        for (let i = 0; i < particlesCount; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 4;
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 3;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 2;
+            
+            // Mix of purple and orange particles
+            if (Math.random() > 0.5) {
+                colors[i * 3] = 0.65; // R
+                colors[i * 3 + 1] = 0.54; // G
+                colors[i * 3 + 2] = 0.98; // B (purple)
+            } else {
+                colors[i * 3] = 0.96; // R
+                colors[i * 3 + 1] = 0.62; // G
+                colors[i * 3 + 2] = 0.04; // B (orange)
+            }
+        }
+
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
         
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.03,
+            transparent: true,
+            opacity: 0.6,
+            vertexColors: true,
+            blending: THREE.AdditiveBlending
+        });
+        const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+        hubGroup.add(particles);
+
+        // Controllers setup
+        const controllerModelFactory = new XRControllerModelFactory();
+        const controllers = [];
+
+        for (let i = 0; i < 2; i++) {
+            const controller = renderer.xr.getController(i);
+            controller.addEventListener('selectstart', onSelectStart);
+            controller.addEventListener('selectend', onSelectEnd);
+            scene.add(controller);
+
+            const grip = renderer.xr.getControllerGrip(i);
+            grip.add(controllerModelFactory.createControllerModel(grip));
+            scene.add(grip);
+
+            // Stylized ray
+            const geometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, 0, -1)
+            ]);
+            const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ 
+                color: 0xa78bfa,
+                opacity: 0.7,
+                transparent: true
+            }));
+            line.scale.z = 5;
+            controller.add(line);
+
+            controllers.push({ controller, grip });
+        }
+
+        // Raycaster for interaction
+        const raycaster = new THREE.Raycaster();
+        let selectedButton = null;
+
+        function onSelectStart(event) {
+            const controller = event.target;
+            const tempMatrix = new THREE.Matrix4();
+            tempMatrix.identity().extractRotation(controller.matrixWorld);
+
+            raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+            raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+
+            const intersects = raycaster.intersectObjects(buttons, false);
+
+            if (intersects.length > 0) {
+                selectedButton = intersects[0].object;
+                selectedButton.scale.set(1.15, 1.15, 1.15);
+                
+                console.log(`Selected: ${selectedButton.userData.label}`);
+            }
+        }
+
+        function onSelectEnd() {
+            if (selectedButton) {
+                selectedButton.scale.set(1, 1, 1);
+                selectedButton = null;
+            }
+        }
+
+        // Animation loop
+        let time = 0;
         renderer.setAnimationLoop(() => {
             time += 0.01;
-            frameCount++;
-            
-            if (frameCount === 60) {
-                log('Animation loop running (60 frames)');
-                frameCount = 0;
+
+            // Animate particles
+            const positions = particles.geometry.attributes.position.array;
+            for (let i = 0; i < positions.length; i += 3) {
+                positions[i + 1] += Math.sin(time + i) * 0.001;
+                positions[i] += Math.cos(time + i * 0.5) * 0.0005;
             }
-            
-            // Subtle crosshair pulse
-            crosshair.mesh.scale.set(
-                1 + Math.sin(time * 2) * 0.1,
-                1 + Math.sin(time * 2) * 0.1,
-                1
-            );
-            
+            particles.geometry.attributes.position.needsUpdate = true;
+            particles.rotation.y += 0.0005;
+
+            // Subtle border glow animation
+            border.material.opacity = 0.5 + Math.sin(time * 2) * 0.3;
+
             renderer.render(scene, camera);
         });
 
@@ -634,13 +730,38 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            log('Window resized');
         });
 
-        // Initialize
-        checkARSupport();
-        log('Initialization complete');
+        // Session handlers
+        renderer.xr.addEventListener('sessionstart', () => {
+            document.getElementById('statusBar').style.display = 'none';
+            document.getElementById('taskDisplay').style.display = 'none';
+            document.getElementById('info').style.display = 'none';
+            console.log('AR Session Started');
+        });
 
+        renderer.xr.addEventListener('sessionend', () => {
+            document.getElementById('statusBar').style.display = 'flex';
+            document.getElementById('taskDisplay').style.display = 'block';
+            document.getElementById('info').style.display = 'block';
+            console.log('AR Session Ended');
+        });
+
+        // Update timer every second
+        setInterval(() => {
+            const timerElement = document.querySelector('.timer-text');
+            if (timerElement) {
+                let [minutes, seconds] = timerElement.textContent.split(':').map(Number);
+                seconds--;
+                if (seconds < 0) {
+                    seconds = 59;
+                    minutes--;
+                }
+                if (minutes >= 0) {
+                    timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                }
+            }
+        }, 1000);
     </script>
 </body>
 </html>
